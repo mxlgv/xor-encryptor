@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>573</width>
-    <height>512</height>
+    <width>469</width>
+    <height>541</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>XOR encryptor</string>
   </property>
   <property name="unifiedTitleAndToolBarOnMac">
    <bool>false</bool>
@@ -25,26 +25,29 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_3">
     <item>
-     <widget class="QGroupBox" name="inputSettingsGroupBox">
+     <widget class="QGroupBox" name="inputGroupBox">
       <property name="title">
        <string>Input</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
        <item row="1" column="4">
-        <widget class="QToolButton" name="inputFilesPathDialogButton">
+        <widget class="SelectPathButton" name="inputDirDialogButton">
+         <property name="toolTip">
+          <string>Click to open the directory selection dialog</string>
+         </property>
          <property name="text">
           <string>...</string>
          </property>
         </widget>
        </item>
        <item row="1" column="1" colspan="3">
-        <widget class="QLineEdit" name="inputFilesPathLineEdit"/>
+        <widget class="QLineEdit" name="inputDirLineEdit"/>
        </item>
        <item row="3" column="1" colspan="4">
-        <widget class="QLineEdit" name="inputFilesMaskLineEdit"/>
+        <widget class="QLineEdit" name="inputMaskLineEdit"/>
        </item>
        <item row="3" column="0">
-        <widget class="QLabel" name="inputFilesMaskLabel">
+        <widget class="QLabel" name="inputMaskLabel">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -52,12 +55,12 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Files mask</string>
+          <string>File mask</string>
          </property>
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="inputFilesPathLabel">
+        <widget class="QLabel" name="inputDirLabel">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -68,19 +71,19 @@
           <enum>Qt::LayoutDirection::LeftToRight</enum>
          </property>
          <property name="text">
-          <string>Files path</string>
+          <string>Directory</string>
          </property>
         </widget>
        </item>
        <item row="4" column="1">
-        <widget class="QCheckBox" name="inputFilesDeleteCheckBox">
+        <widget class="QCheckBox" name="inputDeleteCheckBox">
          <property name="text">
           <string/>
          </property>
         </widget>
        </item>
        <item row="4" column="0">
-        <widget class="QLabel" name="inputFilesDeleteLabel">
+        <widget class="QLabel" name="inputDeleteLabel">
          <property name="text">
           <string>Delete files</string>
          </property>
@@ -90,7 +93,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QGroupBox" name="outputSettingsGroupBox">
+     <widget class="QGroupBox" name="outputGroupBox">
       <property name="title">
        <string>Output</string>
       </property>
@@ -110,19 +113,36 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Files path</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="3">
-        <widget class="QToolButton" name="outputFilesPathDialogButton">
-         <property name="text">
-          <string>...</string>
+          <string>Directory</string>
          </property>
         </widget>
        </item>
        <item row="0" column="1" colspan="2">
         <widget class="QLineEdit" name="outputFilesPathLineEdit"/>
+       </item>
+       <item row="0" column="3">
+        <widget class="SelectPathButton" name="outputFilesPathDialogButton">
+         <property name="toolTip">
+          <string>Click to open the directory selection dialog</string>
+         </property>
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1" colspan="3">
+        <widget class="QComboBox" name="conflictComboBox">
+         <item>
+          <property name="text">
+           <string>Replace file</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Rename file</string>
+          </property>
+         </item>
+        </widget>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="confictLabel">
@@ -137,39 +157,16 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1" colspan="3">
-        <widget class="QComboBox" name="conflictComboBox"/>
-       </item>
       </layout>
      </widget>
     </item>
     <item>
-     <widget class="QGroupBox" name="groupBox">
+     <widget class="QGroupBox" name="generalGroupBox">
       <property name="title">
        <string>General</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="4" column="1">
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Orientation::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="4" column="0">
-        <widget class="QRadioButton" name="runTimerRadioButton">
-         <property name="text">
-          <string>Run on a timer (repeat every)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0" colspan="2">
+       <item row="2" column="0">
         <widget class="QRadioButton" name="runOnceRadioButton">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -179,6 +176,9 @@
          </property>
          <property name="text">
           <string>Run once</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -195,18 +195,89 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="2">
+       <item row="4" column="1" alignment="Qt::AlignmentFlag::AlignRight">
         <widget class="QTimeEdit" name="timeEdit">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <property name="toolTip">
+          <string/>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+         </property>
+         <property name="currentSection">
+          <enum>QDateTimeEdit::Section::HourSection</enum>
+         </property>
+         <property name="displayFormat">
+          <string>h'h' m'm' s's'</string>
+         </property>
         </widget>
        </item>
-       <item row="1" column="1" colspan="2">
-        <widget class="QLineEdit" name="xorKeyLineEdit"/>
+       <item row="4" column="0">
+        <widget class="QRadioButton" name="runTimerRadioButton">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Run on a timer (repeat every)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="xorKeyLineEdit">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>190</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="inputMethodHints">
+          <set>Qt::InputMethodHint::ImhNone</set>
+         </property>
+         <property name="inputMask">
+          <string>&gt;HH HH HH HH HH HH HH HH;0</string>
+         </property>
+         <property name="text">
+          <string>       </string>
+         </property>
+         <property name="maxLength">
+          <number>23</number>
+         </property>
+         <property name="frame">
+          <bool>true</bool>
+         </property>
+         <property name="echoMode">
+          <enum>QLineEdit::EchoMode::Normal</enum>
+         </property>
+         <property name="cursorMoveStyle">
+          <enum>Qt::CursorMoveStyle::LogicalMoveStyle</enum>
+         </property>
+         <property name="clearButtonEnabled">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -233,7 +304,10 @@
     <item>
      <widget class="QProgressBar" name="progressBar">
       <property name="value">
-       <number>24</number>
+       <number>0</number>
+      </property>
+      <property name="textVisible">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -244,13 +318,20 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>573</width>
+     <width>469</width>
      <height>23</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SelectPathButton</class>
+   <extends>QToolButton</extends>
+   <header>selectpathbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
