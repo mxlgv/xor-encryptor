@@ -9,7 +9,7 @@ SelectPathButton::SelectPathButton(QWidget *parent)
 }
 
 void SelectPathButton::selectPath() {
-    QString dirPath = QFileDialog::getExistingDirectory(this, dialogText_m, "");
+    QString dirPath = QFileDialog::getExistingDirectory(this, m_dialogText, "");
     if (!dirPath.isEmpty()) {
         emit pathSelected(dirPath);
     }
@@ -17,5 +17,5 @@ void SelectPathButton::selectPath() {
 
 void SelectPathButton::setDialogText(const QString &dialogText)
 {
-    dialogText_m = dialogText;
+    m_dialogText = dialogText;
 }

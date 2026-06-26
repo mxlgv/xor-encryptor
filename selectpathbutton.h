@@ -14,7 +14,7 @@ public:
     void setDialogText(const QString &dialogText);
 
 private:
-    QString dialogText_m;
+    QString m_dialogText;
 
 private slots:
     void selectPath();

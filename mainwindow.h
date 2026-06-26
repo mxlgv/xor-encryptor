@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QThread>
+#include <xorworker.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -18,9 +20,14 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_runButton_clicked();
+    void on_startButton_clicked();
 
 private:
+    void onThreadFinished();
+    void onXorWorkerFinished(const QString &errorText);
+
     Ui::MainWindow *ui;
+    XorWorker *m_xorWorker {nullptr};
+    QThread *m_thread {nullptr};
 };
 #endif // MAINWINDOW_H
