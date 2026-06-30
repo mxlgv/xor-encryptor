@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include <QThread>
-#include <xorworker.h>
+#include <worker.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,14 +20,17 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_startButton_clicked();
+    void on_startStopButton_clicked();
+    void on_pauseButton_clicked();
 
 private:
     void onThreadFinished();
-    void onXorWorkerFinished(const QString &errorText);
+    void onXorWorkerFinished(WorkerResult result, const QString& msg);
+    void setGuiInputEnabled(bool enabledl);
 
     Ui::MainWindow *ui;
-    XorWorker *m_xorWorker {nullptr};
+    Worker *m_xorWorker {nullptr};
     QThread *m_thread {nullptr};
 };
+
 #endif // MAINWINDOW_H

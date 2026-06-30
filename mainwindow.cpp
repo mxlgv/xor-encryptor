@@ -20,6 +20,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Binding radio button and time edit
     connect(ui->runTimerRadioButton, &QRadioButton::toggled, ui->timeEdit, &QTimeEdit::setEnabled);
+
+    ui->statusbar->showMessage("User action expected.");
 }
 
 MainWindow::~MainWindow()
@@ -27,25 +29,39 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::onXorWorkerFinished(const QString &errorText) {
+void MainWindow::onXorWorkerFinished(WorkerResult result, const QString& msg) {
 
-    if (!errorText.isEmpty()) {
-        QMessageBox::critical(this, "Error", errorText);
-    } else {
-        QMessageBox::information(this, "Success", "The operation has been successfully completed!");
+    switch (result) {
+    case WorkerResult::OK:
+        QMessageBox::information(this, "Success", msg);
+        break;
+    case WorkerResult::Warn:
+        QMessageBox::warning(this, "Warning", msg);
+        break;
+    case WorkerResult::Error:
+        QMessageBox::critical(this, "Error", msg);
+        break;
+    default:
+        break;
     }
 
     if (m_thread)
     {
         m_thread->quit();
     }
+
 }
 
-void MainWindow::on_startButton_clicked()
+void MainWindow::on_startStopButton_clicked()
 {
-    ui->startButton->setText("START");
+    setGuiInputEnabled(false);
+    ui->startStopButton->setText("START");
 
-    if (m_thread && m_thread->isRunning()) {
+    // Stop
+    if (m_thread && m_thread->isRunning()) {    
+        ui->startStopButton->setDisabled(true);
+        m_xorWorker->stop();
+        m_thread->quit();
         return;
     }
 
@@ -55,52 +71,107 @@ void MainWindow::on_startButton_clicked()
 
     if (inDir.isEmpty())
     {
-        QMessageBox::critical(this, "Input data error", "The path for locating input files must not be empty!");
+        QMessageBox::critical(this, "Input data error", "The path to the input directory must not be empty!");
+        setGuiInputEnabled(true);
         return;
     }
 
     if (mask.isEmpty())
     {
         QMessageBox::critical(this, "Input data error", "The file mask must not be empty!");
+        setGuiInputEnabled(true);
         return;
     }
 
     if (outDir.isEmpty())
     {
         QMessageBox::critical(this, "Output data error", "The path to the output directory must not be empty!");
+        setGuiInputEnabled(true);
         return;
     }
 
-    ui->startButton->setText("STOP");
+    qDebug() << "XOR Key-str: " << ui->xorKeyLineEdit->displayText();
+
+    bool keyConverted = false;
+    quint64 xorKey = ui->xorKeyLineEdit->displayText().replace(" ", "") .toULongLong(&keyConverted, 16);
+    if (!keyConverted){
+        xorKey = 0;
+    }
+
+    qDebug() << "XOR Key: " << QString("%1").arg(xorKey , 0, 16);
+
+    const WorkerSettings workerSettings = {
+        .inDir = inDir,
+        .mask = mask,
+        .outDir = outDir,
+        .renameOnConflict = ui->conflictComboBox->currentIndex() == 1,
+        .delInFiles = ui->inDeleteCheckBox->isChecked(),
+        .key = xorKey
+    };
+
+    ui->pauseButton->setDisabled(false);
+    ui->startStopButton->setText("STOP");
+    ui->progressBar->setValue(0);
+    ui->progressBar->setMaximum(0); // Infinite
 
     m_thread = new QThread(this);
-    m_xorWorker = new XorWorker(inDir, mask, outDir);
+    m_xorWorker = new Worker(workerSettings);
 
     m_xorWorker->moveToThread(m_thread);
 
-    connect(m_xorWorker, &XorWorker::finished, this, &MainWindow::onXorWorkerFinished);
-    connect(m_xorWorker, &XorWorker::progress, ui->progressBar, &QProgressBar::setValue);
-    connect(m_xorWorker, &XorWorker::setProgressMax, ui->progressBar, &QProgressBar::setMaximum);
+    connect(m_xorWorker, &Worker::finished, this, &MainWindow::onXorWorkerFinished);
+    connect(m_xorWorker, &Worker::progress, ui->progressBar, [this](int value) {
+        ui->progressBar->setValue(value);
+        ui->progressBar->setMaximum(100);
+    });
 
-    connect(m_thread, &QThread::started, m_xorWorker, &XorWorker::doWork);
-    connect(m_thread, &QThread::finished, m_xorWorker, &XorWorker::deleteLater);
+    connect(m_thread, &QThread::started, m_xorWorker, &Worker::doWork);
+    connect(m_thread, &QThread::finished, m_xorWorker, &Worker::deleteLater);
     connect(m_thread, &QThread::finished, m_thread, &QThread::deleteLater);
     connect(m_thread, &QThread::destroyed, this, &MainWindow::onThreadFinished);
 
     m_thread->start();
+
+    ui->statusbar->showMessage("Encrypting files...");
 }
 
 void MainWindow::onThreadFinished() {
     m_thread = nullptr;
     m_xorWorker = nullptr;
 
-    ui->startButton->setText("START");
+    ui->startStopButton->setText("START");
+    ui->startStopButton->setDisabled(false);
+    ui->pauseButton->setDisabled(true);
+    ui->progressBar->setValue(0);
 
-    // Возвращаем кнопки в исходное состояние
-    //ui->buttonStart->setEnabled(true);
-    //ui->buttonPause->setEnabled(false);
-    //ui->buttonResume->setEnabled(false);
-    //ui->buttonStop->setEnabled(false);
+    setGuiInputEnabled(true);
+
+    ui->statusbar->showMessage("Ready");
 }
 
+void MainWindow::on_pauseButton_clicked()
+{
+    if (!m_xorWorker)
+    {
+        return;
+    }
 
+    if (!m_xorWorker->getPaused())
+    {
+        m_xorWorker->setPaused(true);
+        ui->pauseButton->setText("СONTINUE");
+        ui->statusbar->showMessage("Encryption paused");
+        return;
+    }
+
+    m_xorWorker->setPaused(false);
+    ui->pauseButton->setText("PAUSE");
+    ui->statusbar->showMessage("Continuing file encryption...");
+}
+
+void MainWindow::setGuiInputEnabled(bool enabled)
+{
+    ui->inputGroupBox->setEnabled(enabled);
+    ui->outputGroupBox->setEnabled(enabled);
+    ui->generalGroupBox->setEnabled(enabled);
+}

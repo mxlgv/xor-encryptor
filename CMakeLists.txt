@@ -24,8 +24,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(npo-kolibri-test
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        xorworker.h xorworker.cpp
+        worker.h worker.cpp
         selectpathbutton.h selectpathbutton.cpp
+
+
 
 
     )
