@@ -8,21 +8,16 @@
 
 constexpr qint64 k_blockSize = 50 * 1024 * 1024; // 50 Mb
 
-Worker::Worker(const WorkerSettings &settings)
-    : m_inDir(settings.inDir)
-    , m_outDir(settings.outDir)
-    , m_delInputFiles(settings.delInFiles)
-    , m_renameOnConflict(settings.renameOnConflict)
-    , m_timerEnabled(settings.useInterval)
+Worker::Worker(const QString &inDir, const QString &outDir, const QString &mask, quint64 key)
+    : m_inDir(inDir)
+    , m_outDir(outDir)
+    , m_key(key)
 {
     QStringList filters;
-    filters << settings.mask;
+    filters << mask;
 
     m_inDir.setNameFilters (filters);
     m_inDir.setFilter(QDir::Files | QDir::NoDotAndDotDot);
-
-    QTime midnight(0, 0, 0);
-    m_interval = midnight.msecsTo(settings.interval);
 }
 
 quint64 Worker::getFiles(QStringList &files) const
@@ -79,7 +74,7 @@ void Worker::doWork()
             emit statusMsg("Waiting for the timer...");
 
             QMutexLocker locker(&m_mutex);
-            m_timerCondition.wait(&m_mutex, m_interval);
+            m_timerCondition.wait(&m_mutex, m_timerInterval);
 
             if (m_isRunning) {
                 while (m_isPaused) {
@@ -128,13 +123,10 @@ bool Worker::encrypt()
 
     // Stage 2. XOR encrypt:
     foreach (const QString &fileName, inFileNames) {
-        const QString &inFilePath = m_inDir.absoluteFilePath(fileName);
-        const QString &outFilePath = m_outDir.absoluteFilePath(fileName);
-
         QFile inFile(m_inDir.absoluteFilePath(fileName));
         QFile outFile(m_outDir.absoluteFilePath(fileName));
 
-        if (outFile.exists() && m_renameOnConflict) {
+        if (outFile.exists() && m_renamingOnConflict) {
             const QString &newFilePath = genNewFileName(outFile.fileName());
             outFile.setFileName(newFilePath);
             qDebug() << "Renaming output file:" << outFile.fileName() << "->" << newFilePath;
@@ -202,7 +194,7 @@ bool Worker::encrypt()
             emit progress(100 * processedBytes / totalBytes);
         }
 
-        if (m_delInputFiles && !encryptSelf) {
+        if (m_deleteInputFiles && !encryptSelf) {
             inFile.close();
             inFile.remove();
         }
@@ -248,6 +240,27 @@ bool Worker::getPaused()
 {
     QMutexLocker locker(&m_mutex);
     return m_isPaused;
+}
+
+void Worker::enableDeleteInputFiles(bool enable)
+{
+    m_deleteInputFiles = enable;
+}
+
+void Worker::enableRenamingOnConflict(bool enable)
+{
+    m_renamingOnConflict = enable;
+}
+
+void Worker::setTimerInterval(QTime interval)
+{
+    QTime midnight(0, 0, 0);
+    m_timerInterval = midnight.msecsTo(interval);
+}
+
+void Worker::enableTimer(bool enable)
+{
+    m_timerEnabled = enable;
 }
 
 void Worker::stop()

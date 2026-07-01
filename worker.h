@@ -8,30 +8,15 @@
 #include <QTimer>
 #include <QWaitCondition>
 
-struct WorkerSettings
-{
-    const QString &inDir;
-    const QString &mask;
-    const QString &outDir;
-    bool renameOnConflict;
-    bool delInFiles;
-    quint64 key;
-    QTime interval;
-    bool useInterval;
-};
-
-enum class WorkerResult {
-    OK,
-    Warn,
-    Error,
-};
+enum class WorkerResult { OK, Warn, Error };
 
 class Worker : public QObject
 {
     Q_OBJECT
 
 public:
-    Worker(const WorkerSettings &setting);
+    // General ctor
+    Worker(const QString &inDir, const QString &outDir, const QString &mask, quint64 key);
 
     // Delete copy сtor
     Worker(const Worker &) = delete;
@@ -41,6 +26,13 @@ public:
     Worker(Worker &&) = delete;
     Worker &operator=(Worker &&) = delete;
 
+    // Worker settings:
+    void enableDeleteInputFiles(bool enable);
+    void enableRenamingOnConflict(bool enable);
+    void setTimerInterval(QTime interval);
+    void enableTimer(bool enable);
+
+    // Thread control:
     void stop();
     void setPaused(bool pause);
     bool getPaused();
@@ -54,24 +46,28 @@ signals:
     void finished(WorkerResult status, const QString &msg);
 
 private:
-    quint64 m_key;
-
+    // General
     QDir m_inDir;
     QDir m_outDir;
-    bool m_renameOnConflict;
-    bool m_delInputFiles;
+    quint64 m_key;
 
-    int m_interval{0};
+    bool m_renamingOnConflict{false};
+    bool m_deleteInputFiles{false};
+
+    // Timer mode:
+    int m_timerInterval{0};
     bool m_timerEnabled{false};
-
-    QMutex m_mutex;
     QWaitCondition m_timerCondition;
-    QWaitCondition m_pauseCondition;
 
+    // Thread control
+    QMutex m_mutex;
+    QWaitCondition m_pauseCondition;
     bool m_isPaused{false};
     bool m_isRunning{true};
 
     bool encrypt();
+
+    // Helpers:
     quint64 getFiles(QStringList &files) const;
 
     static void xor64(QByteArray &data, quint64 key);

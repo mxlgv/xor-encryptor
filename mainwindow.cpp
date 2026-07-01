@@ -90,8 +90,6 @@ void MainWindow::on_startStopButton_clicked()
         return;
     }
 
-    qDebug() << "XOR Key-str: " << ui->xorKeyLineEdit->displayText();
-
     bool keyConverted = false;
     quint64 xorKey = ui->xorKeyLineEdit->displayText().replace(" ", "").toULongLong(&keyConverted,
                                                                                     16);
@@ -101,31 +99,19 @@ void MainWindow::on_startStopButton_clicked()
 
     qDebug() << "XOR Key: " << QString("%1").arg(xorKey, 0, 16);
 
-    const WorkerSettings workerSettings = {.inDir = inDir,
-                                           .mask = mask,
-                                           .outDir = outDir,
-                                           .renameOnConflict = ui->conflictComboBox->currentIndex()
-                                                               == 1,
-                                           .delInFiles = ui->inDeleteCheckBox->isChecked(),
-                                           .key = xorKey,
-                                           .interval = ui->timeEdit->time(),
-                                           .useInterval = ui->runTimerRadioButton->isChecked()};
-
-    ui->pauseButton->setDisabled(false);
-    ui->startStopButton->setText("STOP");
-    ui->progressBar->setValue(0);
-    ui->progressBar->setMaximum(0); // Infinite
-
+    // Configure thread:
     m_thread = new QThread(this);
-    m_xorWorker = new Worker(workerSettings);
+    m_xorWorker = new Worker(inDir, outDir, mask, xorKey);
+
+    m_xorWorker->enableDeleteInputFiles(ui->inDeleteCheckBox->isChecked());
+    m_xorWorker->enableRenamingOnConflict(ui->conflictComboBox->currentIndex() == 1);
+    m_xorWorker->setTimerInterval(ui->timeEdit->time());
+    m_xorWorker->enableTimer(ui->runTimerRadioButton->isChecked());
 
     m_xorWorker->moveToThread(m_thread);
 
     connect(m_xorWorker, &Worker::finished, this, &MainWindow::onXorWorkerFinished);
-    connect(m_xorWorker, &Worker::progress, this, [this](int value) {
-        ui->progressBar->setValue(value);
-        ui->progressBar->setMaximum(100);
-    });
+    connect(m_xorWorker, &Worker::progress, ui->progressBar, &QProgressBar::setValue);
     connect(m_xorWorker, &Worker::statusMsg, this, [this](const QString &msg) {
         ui->statusbar->showMessage(msg);
     });
@@ -136,15 +122,25 @@ void MainWindow::on_startStopButton_clicked()
     connect(m_thread, &QThread::destroyed, this, &MainWindow::onThreadFinished);
 
     m_thread->start();
+
+    ui->pauseButton->setDisabled(false);
+
+    //The thread has been started. Now this button should STOP it.
+    ui->startStopButton->setText("STOP");
 }
 
 void MainWindow::onThreadFinished() {
     m_thread = nullptr;
     m_xorWorker = nullptr;
 
+    // If the thread has finished, the button should now be "START".
     ui->startStopButton->setText("START");
     ui->startStopButton->setDisabled(false);
+
+    // Disable PAUSE button
     ui->pauseButton->setDisabled(true);
+
+    // Reset progress bar
     ui->progressBar->setValue(0);
 
     setGuiInputEnabled(true);
@@ -175,7 +171,7 @@ void MainWindow::setGuiInputEnabled(bool enabled)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (!m_xorWorker) {
+    if (!m_xorWorker || !m_thread) {
         return;
     }
 

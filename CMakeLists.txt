@@ -45,6 +45,7 @@ else()
     endif()
 endif()
 
+target_compile_options(xor-encryptor PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(xor-encryptor  PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

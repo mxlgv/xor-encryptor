@@ -16,7 +16,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
@@ -26,11 +26,11 @@ private slots:
 private:
     void onThreadFinished();
     void onXorWorkerFinished(WorkerResult result, const QString &msg);
-    void setGuiInputEnabled(bool enabledl);
+    void setGuiInputEnabled(bool enabled);
 
     Ui::MainWindow *ui;
     Worker *m_xorWorker{nullptr};
-    QThread *m_thread {nullptr};
+    QThread *m_thread{nullptr};
 
 protected:
     void closeEvent(QCloseEvent *event) override;
