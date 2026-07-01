@@ -1,10 +1,11 @@
 #ifndef WORKER_H
 #define WORKER_H
 
-#include <QString>
-#include <QStringList>
 #include <QDir>
 #include <QMutexLocker>
+#include <QString>
+#include <QStringList>
+#include <QTimer>
 #include <QWaitCondition>
 
 struct WorkerSettings
@@ -15,10 +16,11 @@ struct WorkerSettings
     bool renameOnConflict;
     bool delInFiles;
     quint64 key;
+    QTime interval;
+    bool useInterval;
 };
 
-enum class WorkerResult
-{
+enum class WorkerResult {
     OK,
     Warn,
     Error,
@@ -32,12 +34,12 @@ public:
     Worker(const WorkerSettings &setting);
 
     // Delete copy сtor
-    Worker(const Worker&) = delete;
-    Worker& operator=(const Worker&) = delete;
+    Worker(const Worker &) = delete;
+    Worker &operator=(const Worker &) = delete;
 
     //  Delete move сtor
-    Worker(Worker&&) = delete;
-    Worker& operator=(Worker&&) = delete;
+    Worker(Worker &&) = delete;
+    Worker &operator=(Worker &&) = delete;
 
     void stop();
     void setPaused(bool pause);
@@ -48,6 +50,7 @@ public slots:
 
 signals:
     void progress(int percentValue);
+    void statusMsg(const QString &msg);
     void finished(WorkerResult status, const QString &msg);
 
 private:
@@ -58,12 +61,17 @@ private:
     bool m_renameOnConflict;
     bool m_delInputFiles;
 
+    int m_interval{0};
+    bool m_timerEnabled{false};
+
     QMutex m_mutex;
+    QWaitCondition m_timerCondition;
     QWaitCondition m_pauseCondition;
 
-    bool m_isPaused { false };
-    bool m_isRunning { true };
+    bool m_isPaused{false};
+    bool m_isRunning{true};
 
+    bool encrypt();
     quint64 getFiles(QStringList &files) const;
 
     static void xor64(QByteArray &data, quint64 key);

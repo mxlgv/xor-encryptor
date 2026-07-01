@@ -1,9 +1,10 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include <QProgressBar>
+#include <QCloseEvent>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QProgressBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -21,16 +22,16 @@ MainWindow::MainWindow(QWidget *parent)
     // Binding radio button and time edit
     connect(ui->runTimerRadioButton, &QRadioButton::toggled, ui->timeEdit, &QTimeEdit::setEnabled);
 
-    ui->statusbar->showMessage("User action expected.");
+    ui->statusbar->showMessage("Ready");
 }
 
 MainWindow::~MainWindow()
-{
+{   
     delete ui;
 }
 
-void MainWindow::onXorWorkerFinished(WorkerResult result, const QString& msg) {
-
+void MainWindow::onXorWorkerFinished(WorkerResult result, const QString &msg)
+{
     switch (result) {
     case WorkerResult::OK:
         QMessageBox::information(this, "Success", msg);
@@ -49,7 +50,6 @@ void MainWindow::onXorWorkerFinished(WorkerResult result, const QString& msg) {
     {
         m_thread->quit();
     }
-
 }
 
 void MainWindow::on_startStopButton_clicked()
@@ -93,21 +93,23 @@ void MainWindow::on_startStopButton_clicked()
     qDebug() << "XOR Key-str: " << ui->xorKeyLineEdit->displayText();
 
     bool keyConverted = false;
-    quint64 xorKey = ui->xorKeyLineEdit->displayText().replace(" ", "") .toULongLong(&keyConverted, 16);
-    if (!keyConverted){
+    quint64 xorKey = ui->xorKeyLineEdit->displayText().replace(" ", "").toULongLong(&keyConverted,
+                                                                                    16);
+    if (!keyConverted) {
         xorKey = 0;
     }
 
-    qDebug() << "XOR Key: " << QString("%1").arg(xorKey , 0, 16);
+    qDebug() << "XOR Key: " << QString("%1").arg(xorKey, 0, 16);
 
-    const WorkerSettings workerSettings = {
-        .inDir = inDir,
-        .mask = mask,
-        .outDir = outDir,
-        .renameOnConflict = ui->conflictComboBox->currentIndex() == 1,
-        .delInFiles = ui->inDeleteCheckBox->isChecked(),
-        .key = xorKey
-    };
+    const WorkerSettings workerSettings = {.inDir = inDir,
+                                           .mask = mask,
+                                           .outDir = outDir,
+                                           .renameOnConflict = ui->conflictComboBox->currentIndex()
+                                                               == 1,
+                                           .delInFiles = ui->inDeleteCheckBox->isChecked(),
+                                           .key = xorKey,
+                                           .interval = ui->timeEdit->time(),
+                                           .useInterval = ui->runTimerRadioButton->isChecked()};
 
     ui->pauseButton->setDisabled(false);
     ui->startStopButton->setText("STOP");
@@ -120,9 +122,12 @@ void MainWindow::on_startStopButton_clicked()
     m_xorWorker->moveToThread(m_thread);
 
     connect(m_xorWorker, &Worker::finished, this, &MainWindow::onXorWorkerFinished);
-    connect(m_xorWorker, &Worker::progress, ui->progressBar, [this](int value) {
+    connect(m_xorWorker, &Worker::progress, this, [this](int value) {
         ui->progressBar->setValue(value);
         ui->progressBar->setMaximum(100);
+    });
+    connect(m_xorWorker, &Worker::statusMsg, this, [this](const QString &msg) {
+        ui->statusbar->showMessage(msg);
     });
 
     connect(m_thread, &QThread::started, m_xorWorker, &Worker::doWork);
@@ -131,8 +136,6 @@ void MainWindow::on_startStopButton_clicked()
     connect(m_thread, &QThread::destroyed, this, &MainWindow::onThreadFinished);
 
     m_thread->start();
-
-    ui->statusbar->showMessage("Encrypting files...");
 }
 
 void MainWindow::onThreadFinished() {
@@ -145,28 +148,22 @@ void MainWindow::onThreadFinished() {
     ui->progressBar->setValue(0);
 
     setGuiInputEnabled(true);
-
-    ui->statusbar->showMessage("Ready");
 }
 
 void MainWindow::on_pauseButton_clicked()
 {
-    if (!m_xorWorker)
-    {
+    if (!m_xorWorker) {
         return;
     }
 
-    if (!m_xorWorker->getPaused())
-    {
+    if (!m_xorWorker->getPaused()) {
         m_xorWorker->setPaused(true);
         ui->pauseButton->setText("СONTINUE");
-        ui->statusbar->showMessage("Encryption paused");
         return;
     }
 
     m_xorWorker->setPaused(false);
     ui->pauseButton->setText("PAUSE");
-    ui->statusbar->showMessage("Continuing file encryption...");
 }
 
 void MainWindow::setGuiInputEnabled(bool enabled)
@@ -174,4 +171,39 @@ void MainWindow::setGuiInputEnabled(bool enabled)
     ui->inputGroupBox->setEnabled(enabled);
     ui->outputGroupBox->setEnabled(enabled);
     ui->generalGroupBox->setEnabled(enabled);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (!m_xorWorker) {
+        return;
+    }
+
+    disconnect(m_xorWorker, &Worker::finished, this, &MainWindow::onXorWorkerFinished);
+
+    QMessageBox *waitBox = new QMessageBox(this);
+    waitBox->setWindowTitle("Completing all operations");
+    waitBox->setText("Please wait for background operations to complete...");
+
+    waitBox->setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+    waitBox->setStandardButtons(QMessageBox::NoButton);
+
+    waitBox->show();
+
+    if (m_xorWorker) {
+        m_xorWorker->stop();
+    }
+
+    if (m_thread && m_thread->isRunning()) {
+        m_thread->quit();
+
+        while (m_thread->isRunning()) {
+            QCoreApplication::processEvents();
+            QThread::msleep(50);
+        }
+    }
+
+    waitBox->close();
+    delete waitBox;
+    event->accept();
 }

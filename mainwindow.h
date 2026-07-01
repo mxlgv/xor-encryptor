@@ -25,12 +25,15 @@ private slots:
 
 private:
     void onThreadFinished();
-    void onXorWorkerFinished(WorkerResult result, const QString& msg);
+    void onXorWorkerFinished(WorkerResult result, const QString &msg);
     void setGuiInputEnabled(bool enabledl);
 
     Ui::MainWindow *ui;
-    Worker *m_xorWorker {nullptr};
+    Worker *m_xorWorker{nullptr};
     QThread *m_thread {nullptr};
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 };
 
 #endif // MAINWINDOW_H
